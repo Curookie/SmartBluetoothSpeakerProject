@@ -1,7 +1,6 @@
 # 컴정과 'Smart 블루투스' 프로젝트 201344052 B반 원종진
 
-import subprocess
-import threading
+import pygame
 import time
 import RPi.GPIO as GPIO
 
@@ -47,6 +46,9 @@ GPIO.setup(SWITCH_DOWN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(SWITCH_CHANGE, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 GPIO.add_event_detect(SWITCH_CHANGE, GPIO.FALLING, callback=changeMusic)
+
+pygame.init()
+pygame.mixer.init()
 
 
 def start():
@@ -110,6 +112,9 @@ def changeLED():
         GPIO.output(LED_RED, True)
 
 def changeMusic():
+    pygame.mixer.music.load("bg_music.mp3")
+    pygame.mixer.music.set_volume(1)
+    pygame.mixer.music.play()
     print("change Music")
  
 
@@ -123,6 +128,7 @@ def printLog(sensor_n):
 
 
 def search():
+    print(F_STATE[0])
     try:
         while True:
             for i in range(len(ECHO)):
@@ -157,6 +163,7 @@ def search():
 
 
 def ready(sensor_number):
+    print(F_STATE[1])
     try:
         while (ready_cnt < 100):
             GPIO.output(TRIG[sensor_number],False)
@@ -193,6 +200,7 @@ def ready(sensor_number):
 
 
 def wait(sensor_number):
+    print(F_STATE[2])
     try:
         while (ready_cnt < 30):
             GPIO.output(TRIG[sensor_number],False)
@@ -227,9 +235,7 @@ def wait(sensor_number):
 
 
 print("--- === Smart Bluetooth Speaker Detection Start === ---")
-
-th1 = Thread(target=start)
-
+start()
 
 #subprocess.call('mplayer ./mp3/iu.mp3', shell=True)
 
