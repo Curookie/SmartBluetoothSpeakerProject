@@ -3,6 +3,7 @@
 import subprocess
 import os
 import time
+import random
 import RPi.GPIO as GPIO
 
 
@@ -10,6 +11,7 @@ GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BCM)
 
 F_STATE = [ 'search', 'ready', 'wait' ]
+song = ['cs.mp3', 'iu.mp3', 'ho.mp3', 'nn.mp3', 'mg.mp3']
 
 FIRST_TRIG = 5
 FIRST_ECHO = 6
@@ -30,6 +32,7 @@ pulse_start = [0, 0]
 pulse_end = [0, 0]
 pulse_duration = [0, 0]
 
+global volume
 global people_cnt
 global ready_cnt
 global wait_cnt
@@ -37,6 +40,7 @@ global ready_success
 global player
 global mp3open
 
+volume = 80
 people_cnt=0
 ready_cnt =0
 wait_cnt=0
@@ -54,8 +58,32 @@ GPIO.setup(SWITCH_UP, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(SWITCH_DOWN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(SWITCH_CHANGE, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
-#GPIO.add_event_detect(SWITCH_CHANGE, GPIO.FALLING, callback=changeMusic)
+def btnChange(channel) :
+    global mp3open
+    global player
+    os.system("killall -9 mplayer")
+    mp3open=True
+    player = subprocess.Popen(["mplayer","./mp3/"+random.choice(song)], stdin=subprocess.PIPE)
+    print("Change Button Presssed!")
 
+def btnUp(channel) :
+    global volume
+    if(volume<100) :
+        volume = volume +2
+        os.system("amixer cset numid=1 "+str(volume)+"% | amixer cset numid=3 "+str(volume)+"%")
+    print("Change Volume to "+str(volume)+"%")
+
+
+def btnDown(channel) :
+    global volume
+    if(volume>0) :
+        volume = volume - 2
+        os.system("amixer cset numid=1 "+str(volume)+"% | amixer cset numid=3 "+str(volume)+"%")
+    print("Change Volume to "+str(volume)+"%")
+
+GPIO.add_event_detect(SWITCH_CHANGE, GPIO.FALLING, callback=btnChange, bouncetime=300)
+GPIO.add_event_detect(SWITCH_UP, GPIO.FALLING, callback=btnUp, bouncetime=300)
+GPIO.add_event_detect(SWITCH_DOWN, GPIO.FALLING, callback=btnDown, bouncetime=300)
 
 def start():
     changeLED()
@@ -96,7 +124,8 @@ def changePeople(sensor_n):
 
 def changeLED():
     global people_cnt
-    if(people_cnt==0):
+    if(people_cnt<=0):
+        changeMusic()
         GPIO.output(LED_GREEN, False)
         GPIO.output(LED_YELLOW, False)
         GPIO.output(LED_RED, False)
@@ -106,10 +135,12 @@ def changeLED():
         GPIO.output(LED_YELLOW, False)
         GPIO.output(LED_RED, False)
     elif(people_cnt<5) :
+        changeMusic()
         GPIO.output(LED_GREEN, False)
         GPIO.output(LED_YELLOW, True)
         GPIO.output(LED_RED, False)
-    else:
+    elif(people_cnt==5):
+        changeMusic()
         GPIO.output(LED_GREEN, False)
         GPIO.output(LED_YELLOW, False)
         GPIO.output(LED_RED, True)
@@ -120,14 +151,27 @@ def changeMusic():
     global mp3open
     #player=subprocess.Popen(["mplayer", "-slave","./mp3/iu.mp3"], bufsize=-1 stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)   
     if(mp3open==True) :
-        os.system("kill "
+        os.system("killall -9 mplayer")
+        mp3open=False
 
     if(people_cnt==1) :
-        player=subprocess.Popen(["mplayer","./mp3/iu.mp3"], stdin=subprocess.PIPE)
+        player=subprocess.Popen(["mplayer","./mp3/cs.mp3"], stdin=subprocess.PIPE)
         mp3open=True
         
     elif(people_cnt==2) :
+        player=subprocess.Popen(["mplayer","./mp3/iu.mp3"], stdin=subprocess.PIPE)
+        mp3open=True
+
+    elif(people_cnt==3) :
         player=subprocess.Popen(["mplayer","./mp3/ho.mp3"], stdin=subprocess.PIPE)
+        mp3open=True
+
+    elif(people_cnt==4) :
+        player=subprocess.Popen(["mplayer","./mp3/nn.mp3"], stdin=subprocess.PIPE)
+        mp3open=True
+
+    elif(people_cnt==5) :
+        player=subprocess.Popen(["mplayer","./mp3/mg.mp3"], stdin=subprocess.PIPE)
         mp3open=True
     
     #player=subprocess.call(["mplayer","./mp3/iu.mp3"] )
@@ -172,7 +216,7 @@ def search():
 
                 print(distance[i], ", ",i)
                 
-                if(distance[i]<60) :
+                if(distance[i]<55) :
                     print("REC ! - 1st sensor ",i);
                     return i
                     
@@ -187,7 +231,7 @@ def ready(sensor_number):
     global ready_success
     print(F_STATE[1])
     try:
-        while (ready_cnt < 100):
+        while (ready_cnt < 42):
             GPIO.output(TRIG[sensor_number],False)
             time.sleep(0.1)
             
@@ -210,7 +254,7 @@ def ready(sensor_number):
 
             print(distance[sensor_number], ", ",sensor_number, ", ",ready_cnt)
 
-            if(distance[sensor_number]<60) :
+            if(distance[sensor_number]<55) :
                 print("REC ! - 2nd sensor ",sensor_number);
                 changePeople(sensor_number)
                 ready_success = True
@@ -227,7 +271,7 @@ def wait(sensor_number):
     global wait_cnt
     print(F_STATE[2])
     try:
-        while (wait_cnt < 30) :
+        while (wait_cnt < 21) :
             GPIO.output(TRIG[sensor_number],False)
             time.sleep(0.1)
      
@@ -249,7 +293,7 @@ def wait(sensor_number):
 
             print(distance[sensor_number], ", ",sensor_number, ", ",wait_cnt)
 
-            if(distance[sensor_number]<60) :
+            if(distance[sensor_number]<55) :
                 print("Waitting for Out or In, This Person");
                 wait_cnt = 0
                 
