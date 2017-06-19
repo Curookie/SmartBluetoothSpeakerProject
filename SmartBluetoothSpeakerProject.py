@@ -7,11 +7,12 @@ import random
 import RPi.GPIO as GPIO
 
 
+
 GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BCM)
 
 F_STATE = [ 'search', 'ready', 'wait' ]
-song = ['cs.mp3', 'iu.mp3', 'ho.mp3', 'nn.mp3', 'mg.mp3']
+song = ['cs.mp3', 'hd.mp3', 'mr.mp3'],['am.mp3', 'bi.mp3', 'iu.mp3', 'ho.mp3'],['mg.mp3','nn.mp3','nm.mp3','pi.mp3']
 
 FIRST_TRIG = 5
 FIRST_ECHO = 6
@@ -60,15 +61,15 @@ GPIO.setup(SWITCH_UP, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(SWITCH_DOWN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(SWITCH_CHANGE, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
-bz_pwm = GPIO.PWM(BUZ, 1000)
-
 def btnChange(channel) :
     global mp3open
     global player
+    musicName = ""
     os.system("killall -9 mplayer")
     mp3open=True
-    player = subprocess.Popen(["mplayer","./mp3/"+random.choice(song)], stdin=subprocess.PIPE)
-    print("Change Button Presssed!")
+    musicName = random.choice(random.choice(song))
+    player = subprocess.Popen(["mplayer","./mp3/"+musicName], stdin=subprocess.PIPE)
+    print("Change Button Presssed! : "+musicName)
 
 def btnUp(channel) :
     global volume
@@ -153,35 +154,41 @@ def changeMusic():
     global player
     global people_cnt
     global mp3open
+    musicName = ""
     #player=subprocess.Popen(["mplayer", "-slave","./mp3/iu.mp3"], bufsize=-1 stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)   
     if(mp3open==True) :
         os.system("killall -9 mplayer")
         mp3open=False
 
     if(people_cnt==1) :
-        player=subprocess.Popen(["mplayer","./mp3/cs.mp3"], stdin=subprocess.PIPE)
+        musicName = random.choice(song[0])
+        player=subprocess.Popen(["mplayer","./mp3/"+musicName], stdin=subprocess.PIPE)
         mp3open=True
         
     elif(people_cnt==2) :
-        player=subprocess.Popen(["mplayer","./mp3/iu.mp3"], stdin=subprocess.PIPE)
+        musicName = random.choice(song[1])
+        player=subprocess.Popen(["mplayer","./mp3/"+musicName], stdin=subprocess.PIPE)
         mp3open=True
 
     elif(people_cnt==3) :
-        player=subprocess.Popen(["mplayer","./mp3/ho.mp3"], stdin=subprocess.PIPE)
+        musicName = random.choice(song[1])
+        player=subprocess.Popen(["mplayer","./mp3/"+musicName], stdin=subprocess.PIPE)
         mp3open=True
 
     elif(people_cnt==4) :
-        player=subprocess.Popen(["mplayer","./mp3/nn.mp3"], stdin=subprocess.PIPE)
+        musicName = random.choice(song[1])
+        player=subprocess.Popen(["mplayer","./mp3/"+musicName], stdin=subprocess.PIPE)
         mp3open=True
 
     elif(people_cnt==5) :
-        player=subprocess.Popen(["mplayer","./mp3/mg.mp3"], stdin=subprocess.PIPE)
+        musicName = random.choice(song[2])
+        player=subprocess.Popen(["mplayer","./mp3/"+musicName], stdin=subprocess.PIPE)
         mp3open=True
     
     #player=subprocess.call(["mplayer","./mp3/iu.mp3"] )
     #pygame.mixer.music.load("mp3/iu.mp3")
     #pygame.mixer.music.play()
-    print("change Music")
+    #print("change Music ->"+musicName)
  
 
 def printLog(sensor_n):
@@ -194,13 +201,15 @@ def printLog(sensor_n):
 
 
 def search():
-    print(F_STATE[0])
-    bz_pwm.start(100)
+    #print(F_STATE[0])
+    GPIO.output(BUZZ,1)
+    time.sleep(0.25)
+    GPIO.output(BUZZ,0)
     try:
         while True:
             for i in range(len(ECHO)):
                 GPIO.output(TRIG[i],False)
-                time.sleep(0.25)
+                time.sleep(0.12)
      
                 GPIO.output(TRIG[i],True)
                 time.sleep(0.00001)
@@ -218,10 +227,10 @@ def search():
                 distance[i]=pulse_duration[i]*17150
                 distance[i]=round(distance[i],2)
 
-                print(distance[i], ", ",i)
+                #print(distance[i], ", ",i)
                 
                 if(distance[i]<55) :
-                    print("REC ! - 1st sensor ",i);
+                    #print("REC ! - 1st sensor ",i);
                     return i
                     
     except Exception as e:
@@ -232,8 +241,14 @@ def search():
 def ready(sensor_number):
     global ready_cnt
     global ready_success
-    print(F_STATE[1])
-    bz_pwm.start(300)
+    #print(F_STATE[1])
+    GPIO.output(BUZZ,1)
+    time.sleep(0.05)
+    GPIO.output(BUZZ,0)
+    time.sleep(0.03)
+    GPIO.output(BUZZ,1)
+    time.sleep(0.05)
+    GPIO.output(BUZZ,0)
     try:
         while (ready_cnt < 42):
             GPIO.output(TRIG[sensor_number],False)
@@ -256,10 +271,10 @@ def ready(sensor_number):
             distance[sensor_number]=pulse_duration[sensor_number]*17150
             distance[sensor_number]=round(distance[sensor_number],2)
 
-            print(distance[sensor_number], ", ",sensor_number, ", ",ready_cnt)
+            #print(distance[sensor_number], ", ",sensor_number, ", ",ready_cnt)
 
             if(distance[sensor_number]<55) :
-                print("REC ! - 2nd sensor ",sensor_number);
+                #print("REC ! - 2nd sensor ",sensor_number);
                 changePeople(sensor_number)
                 ready_success = True
                 return
@@ -273,8 +288,18 @@ def ready(sensor_number):
 
 def wait(sensor_number):
     global wait_cnt
-    print(F_STATE[2])
-    bz_pwm.start(500)
+    #print(F_STATE[2])
+    GPIO.output(BUZZ,1)
+    time.sleep(0.05)
+    GPIO.output(BUZZ,0)
+    time.sleep(0.03)
+    GPIO.output(BUZZ,1)
+    time.sleep(0.05)
+    GPIO.output(BUZZ,0)
+    time.sleep(0.03)
+    GPIO.output(BUZZ,1)
+    time.sleep(0.05)
+    GPIO.output(BUZZ,0)
     try:
         while (wait_cnt < 21) :
             GPIO.output(TRIG[sensor_number],False)
@@ -296,10 +321,10 @@ def wait(sensor_number):
             distance[sensor_number]=pulse_duration[sensor_number]*17150
             distance[sensor_number]=round(distance[sensor_number],2)
 
-            print(distance[sensor_number], ", ",sensor_number, ", ",wait_cnt)
+            #print(distance[sensor_number], ", ",sensor_number, ", ",wait_cnt)
 
             if(distance[sensor_number]<55) :
-                print("Waitting for Out or In, This Person");
+                #print("Waitting for Out or In, This Person");
                 wait_cnt = 0
                 
             wait_cnt = wait_cnt + 1
@@ -319,96 +344,3 @@ def resetOption():
 
 print("--- === Smart Bluetooth Speaker Detection Start === ---")
 start()
-
-#subprocess.call('mplayer ./mp3/iu.mp3', shell=True)
-
-
-
-'''
-print("start")
-GPIO.setup(LED_GREEN, GPIO.OUT)
-GPIO.setup(LED_YELLOW, GPIO.OUT)
-GPIO.setup(LED_RED, GPIO.OUT)
-GPIO.setup(FIRST_TRIG, GPIO.OUT)
-GPIO.setup(FIRST_ECHO, GPIO.IN)
-GPIO.setup(SECOND_TRIG, GPIO.OUT)
-GPIO.setup(SECOND_ECHO, GPIO.IN)
-GPIO.output(LED_GREEN, False)
-GPIO.output(LED_YELLOW, False)
-GPIO.output(LED_RED, False)
-try:
-    while True:
-        GPIO.output(FIRST_TRIG, False)
-        GPIO.output(SECOND_TRIG, False)
-        time.sleep(0.5)
-        GPIO.output(FIRST_TRIG, True)
-        GPIO.output(SECOND_TRIG, True)
-        time.sleep(0.00001)
-        GPIO.output(FIRST_TRIG, False)
-        GPIO.output(SECOND_TRIG, False)
-        while GPIO.input(echo) == 0 :
-            pulse_start = time.time()
-        while GPIO.input(echo) == 1 :
-            pulse_end = time.time()
-        pulse_duration = pulse_end - pulse_start
-        distance = pulse_duration * 17000
-        distance = round(distance, 2)
-        if(distance<=20):
-            pwmRed.ChangeDutyCycle(100-distance*5)
-        else:
-            pwmRed.ChangeDutyCycle(0)
-        print("Distance : ", distance, "cm")
-        
-except :
-    print("Cleanning UP")
-    GPIO.cleanup()
-        
-'''
-
-'''
-in_ready = False
-out_ready = False
-try:
-    while True:
-        for i in range(len(ECHO)):
-            GPIO.output(TRIG[i],False)
-            time.sleep(0.1)
- 
-            GPIO.output(TRIG[i],True)
-            time.sleep(0.00001)
-            GPIO.output(TRIG[i],False)
-             
-            while GPIO.input(ECHO[i])==0:
-                pulse_start[i]=time.time()
-                
-             
-            while GPIO.input(ECHO[i])==1:
-                pulse_end[i]=time.time()
-            pulse_duration[i]=pulse_end[i]-pulse_start[i]
-             
-            distance[i]=pulse_duration[i]*17150
-            distance[i]=round(distance[i],2)
-            now = time.localtime()
-            if(distance[i]<30) :
-                print("REC ! - sensor ",i);
-                if( in_ready ==True and i==0 ) :
-                    people_cnt = people_cnt + 1 
-                    s = "%04d-%02d-%02d %02d:%02d:%02d" % (now.tm_year, now.tm_mon, now.tm_mday, now.tm_hour, now.tm_min, now.tm_sec)
-                    print("Time : ",s,", Sensor Name : Sensor ",i+1,", Distance : ",distance[i],"cm, People Count : ",people_cnt)
-                    out_ready = False
-                    in_ready = False
-                elif(out_ready==True and i==1 ) :
-                    people_cnt = people_cnt - 1
-                    s = "%04d-%02d-%02d %02d:%02d:%02d" % (now.tm_year, now.tm_mon, now.tm_mday, now.tm_hour, now.tm_min, now.tm_sec)
-                    print("Time : ",s,", Sensor Name : Sensor ",i+1,", Distance : ",distance[i],"cm, People Count : ",people_cnt)
-                    out_ready = False
-                    in_ready = False
-                elif(i==1) :
-                    in_ready = True
-                else :
-                    out_ready = True
-                
-except:    
-    GPIO.cleanup()
-    print("error")
-'''
