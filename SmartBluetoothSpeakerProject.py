@@ -17,6 +17,7 @@ FIRST_TRIG = 5
 FIRST_ECHO = 6
 SECOND_TRIG = 13
 SECOND_ECHO = 19
+BUZZ = 15
 LED_GREEN = 16
 LED_YELLOW = 20
 LED_RED = 21
@@ -54,9 +55,12 @@ for i in range(len(ECHO)) :
 GPIO.setup(LED_GREEN, GPIO.OUT)
 GPIO.setup(LED_YELLOW, GPIO.OUT)
 GPIO.setup(LED_RED, GPIO.OUT)
+GPIO.setup(BUZZ, GPIO.OUT)
 GPIO.setup(SWITCH_UP, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(SWITCH_DOWN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(SWITCH_CHANGE, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+bz_pwm = GPIO.PWM(BUZ, 1000)
 
 def btnChange(channel) :
     global mp3open
@@ -189,9 +193,9 @@ def printLog(sensor_n):
         
 
 
-
 def search():
     print(F_STATE[0])
+    bz_pwm.start(100)
     try:
         while True:
             for i in range(len(ECHO)):
@@ -220,16 +224,16 @@ def search():
                     print("REC ! - 1st sensor ",i);
                     return i
                     
-    except:    
+    except Exception as e:
         GPIO.cleanup()
-        print("Searching Error")
-
+        print("Searching Error : ", e)
 
 
 def ready(sensor_number):
     global ready_cnt
     global ready_success
     print(F_STATE[1])
+    bz_pwm.start(300)
     try:
         while (ready_cnt < 42):
             GPIO.output(TRIG[sensor_number],False)
@@ -270,6 +274,7 @@ def ready(sensor_number):
 def wait(sensor_number):
     global wait_cnt
     print(F_STATE[2])
+    bz_pwm.start(500)
     try:
         while (wait_cnt < 21) :
             GPIO.output(TRIG[sensor_number],False)
@@ -299,10 +304,9 @@ def wait(sensor_number):
                 
             wait_cnt = wait_cnt + 1
             
-    except:    
+    except Exception as e:
         GPIO.cleanup()
-        print("Waitting Error")
-
+        print("Waitting Error : ", e)
 
 
 def resetOption():
